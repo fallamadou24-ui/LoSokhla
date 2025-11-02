@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../routes/app_routes.dart';
 import '../services/api/user_api_service.dart';
 import '../widgets/loading_indicator.dart';
 
@@ -124,6 +125,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Informations personnelles',
                       style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).pushNamed(
+                        AppRoutes.myRealisations,
+                      ),
+                      icon: const Icon(Icons.collections_outlined),
+                      label: const Text('Mes realisations'),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(

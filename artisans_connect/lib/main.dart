@@ -6,6 +6,7 @@ import 'screens/artisan_list_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/messaging_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/my_realisations_screen.dart';
 
 void main() {
   runApp(const ArtisansConnectApp());
@@ -30,6 +31,7 @@ class ArtisansConnectApp extends StatelessWidget {
         AppRoutes.artisanDetail: (_) => const ArtisanDetailScreen(),
         AppRoutes.messaging: (_) => const MessagingScreen(),
         AppRoutes.profile: (_) => const ProfileScreen(),
+        AppRoutes.myRealisations: (_) => const MyRealisationsScreen(),
       },
     );
   }

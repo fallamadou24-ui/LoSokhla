@@ -70,6 +70,44 @@ class ArtisanApiService {
         .toList(growable: false);
   }
 
+  Future<List<Realisation>> fetchMyRealisations() {
+    return fetchRealisations('me');
+  }
+
+  Future<Realisation> createRealisation({
+    required String artisanId,
+    required String title,
+    String? description,
+    required RealisationMediaType mediaType,
+    required String mediaUrl,
+  }) async {
+    final uri = _buildUri('realisations');
+    final payload = <String, dynamic>{
+      'artisanId': artisanId,
+      'title': title,
+      if (description != null && description.isNotEmpty) 'description': description,
+      'mediaType': mediaType.name,
+      'mediaUrl': mediaUrl,
+    };
+
+    final response = await _safePost(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(payload),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForStatus(response.statusCode);
+    }
+
+    final decoded = _decodeJson(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const ApiException('Format de donnees inattendu recu du serveur.');
+    }
+
+    return Realisation.fromJson(decoded);
+  }
+
   Future<dynamic> _getJson(Uri uri, {bool returnEmptyListOnNotFound = false}) async {
     final response = await _safeGet(uri);
     if (returnEmptyListOnNotFound && response.statusCode == 404) {
@@ -102,6 +140,32 @@ class ArtisanApiService {
       throw const ApiException('Impossible de contacter le serveur distant.');
     } catch (_) {
       throw const ApiException('Une erreur inattendue est survenue.');
+    }
+  }
+
+  Future<http.Response> _safePost(
+    Uri uri, {
+    required Map<String, String> headers,
+    required String body,
+  }) async {
+    try {
+      return await _client.post(uri, headers: headers, body: body).timeout(_timeout);
+    } on SocketException {
+      throw const ApiException('Connexion impossible. Verifiez votre connexion internet.');
+    } on TimeoutException {
+      throw const ApiException('Le serveur met trop de temps a repondre. Reessayez plus tard.');
+    } on HttpException {
+      throw const ApiException('Impossible de contacter le serveur distant.');
+    } catch (_) {
+      throw const ApiException('Une erreur inattendue est survenue.');
+    }
+  }
+
+  dynamic _decodeJson(String source) {
+    try {
+      return jsonDecode(source);
+    } on FormatException {
+      throw const ApiException('Reponse du serveur illisible.');
     }
   }
 
