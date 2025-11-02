@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/conversation.dart';
+import '../models/message.dart';
 
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
