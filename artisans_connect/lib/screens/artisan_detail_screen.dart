@@ -40,8 +40,20 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     if (arguments is ArtisanDetailScreenArgs) {
       _args = arguments;
       _artisan = arguments.artisan;
-      if (_artisan == null && arguments.artisanId != null) {
-        _futureArtisan = _loadArtisan(arguments.artisanId!);
+
+      final targetId = arguments.artisanId ?? _artisan?.id;
+      final shouldFetch = targetId != null &&
+          (arguments.artisan == null || arguments.artisan!.realisationList.isEmpty);
+
+      if (shouldFetch && targetId != null) {
+        final future = _loadArtisan(targetId);
+        _futureArtisan = future;
+        future.then((value) {
+          if (!mounted) return;
+          setState(() {
+            _artisan = value;
+          });
+        }, onError: (_) {});
       }
     }
 
@@ -53,12 +65,14 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   }
 
   Future<void> _refresh() async {
-    if (_args?.artisanId == null) return;
-    final future = _loadArtisan(_args!.artisanId!);
+    final targetId = _args?.artisanId ?? _artisan?.id;
+    if (targetId == null) return;
+    final future = _loadArtisan(targetId);
     setState(() {
       _futureArtisan = future;
     });
     final artisan = await future;
+    if (!mounted) return;
     setState(() {
       _artisan = artisan;
     });
@@ -72,14 +86,11 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   Widget build(BuildContext context) {
     if (_futureArtisan != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Artisan')),
+        appBar: AppBar(title: Text(_artisan?.fullName ?? 'Artisan')),
         body: FutureBuilder<Artisan>(
           future: _futureArtisan,
+          initialData: _artisan,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: LoadingIndicator());
-            }
-
             if (snapshot.hasError) {
               return Padding(
                 padding: const EdgeInsets.all(24),
@@ -93,6 +104,12 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _refresh,
@@ -103,6 +120,10 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
               );
             }
 
+            if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {
+              return const Center(child: LoadingIndicator());
+            }
+
             final artisan = snapshot.data;
             if (artisan == null) {
               return const Center(
@@ -111,6 +132,27 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
                   title: 'Artisan introuvable',
                   message: 'L\'artisan demande n\'est plus disponible.',
                 ),
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Stack(
+                children: [
+                  _ArtisanDetailBody(
+                    artisan: artisan,
+                    onContactPressed: _contactArtisan,
+                    onRefresh: _refresh,
+                  ),
+                  const Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                    ),
+                  ),
+                ],
               );
             }
 
